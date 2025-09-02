@@ -22,6 +22,9 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
   bool _canProcess = true;
   bool _isBusy = false;
   bool _isCapturing = false;
+  int _timerDelay = 0;
+  int? _countdown;
+  final List<int> _delayOptions = [0, 5, 10, 15];
   CustomPaint? _customPaint;
   String? _text;
   var _cameraLensDirection = CameraLensDirection.front;
@@ -31,6 +34,46 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
     _canProcess = false;
     _faceDetector.close();
     super.dispose();
+  }
+
+  Future<void> _captureImage() async {
+    setState(() => _isCapturing = true);
+    try {
+      final cameraController = DetectorView.cameraController;
+      if (cameraController != null && cameraController.value.isInitialized) {
+        final image = await cameraController.takePicture();
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ImagePreview(imagePath: image.path),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error capturing image: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isCapturing = false);
+      }
+    }
+  }
+
+  Future<void> _startCountdown(int delay) async {
+    for (int i = delay; i >= 1; i--) {
+      if (!mounted) return;
+      setState(() {
+        _countdown = i <= 3 ? i : null;
+      });
+      await Future.delayed(const Duration(seconds: 1));
+    }
+    setState(() => _countdown = null);
+    if (mounted) {
+      await _captureImage();
+    }
   }
 
   @override
@@ -52,38 +95,63 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
             onPressed: _isCapturing
                 ? null
                 : () async {
-                    setState(() => _isCapturing = true);
-                    try {
-                      final cameraController = DetectorView.cameraController;
-                      if (cameraController != null && cameraController.value.isInitialized) {
-                        final image = await cameraController.takePicture();
-                        if (mounted) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ImagePreview(imagePath: image.path),
-                            ),
-                          );
-                        }
-                      }
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error capturing image: $e')),
-                      );
-                    } finally {
-                      if (mounted) {
-                        setState(() => _isCapturing = false);
-                      }
+                    if (_timerDelay == 0) {
+                      await _captureImage();
+                    } else {
+                      await _startCountdown(_timerDelay);
                     }
                   },
             backgroundColor: Colors.white,
             child: Icon(
-              Icons.camera_alt,
+              _isCapturing ? Icons.hourglass_empty : Icons.camera_alt,
               color: const Color(0xFFCF6565),
               size: 48,
             ),
           ),
         ),
+        Positioned(
+          right: 16, // Aligned with shutter button
+          top: MediaQuery.of(context).size.height / 2 + 72, // Below shutter (56 + 16 gap)
+          child: Container(
+            width: 90, // 20% smaller than 112dp
+            height: 90,
+            child: FloatingActionButton(
+              onPressed: _isCapturing
+                  ? null
+                  : () {
+                      setState(() {
+                        _timerDelay = _delayOptions[(_delayOptions.indexOf(_timerDelay) + 1) % _delayOptions.length];
+                      });
+                    },
+              backgroundColor: Colors.white,
+              child: _timerDelay == 0
+                  ? Icon(
+                      Icons.timer,
+                      color: const Color(0xFFCF6565),
+                      size: 38, // Scaled down 20% from 48
+                    )
+                  : Text(
+                      '${_timerDelay}s',
+                      style: const TextStyle(
+                        color: Color(0xFFCF6565),
+                        fontSize: 26, // Scaled down 20% from 32
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+            ),
+          ),
+        ),
+        if (_countdown != null)
+          Center(
+            child: Text(
+              '$_countdown',
+              style: const TextStyle(
+                color: Color(0xFFCF6565),
+                fontSize: 100,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
       ],
     );
   }
