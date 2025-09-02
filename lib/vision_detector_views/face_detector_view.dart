@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
@@ -24,6 +25,8 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
   bool _isCapturing = false;
   int _timerDelay = 0;
   int? _countdown;
+  double _gamma = 1.0;
+  final List<double> _gammaOptions = [0.5, 1.0, 1.5, 2.0];
   final List<int> _delayOptions = [0, 5, 10, 15];
   CustomPaint? _customPaint;
   String? _text;
@@ -46,7 +49,10 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => ImagePreview(imagePath: image.path),
+              builder: (context) => ImagePreview(
+                imagePath: image.path,
+                gamma: _gamma,
+              ),
             ),
           );
         }
@@ -80,13 +86,35 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        DetectorView(
-          title: 'Face Detector',
-          customPaint: _customPaint,
-          text: _text,
-          onImage: _processImage,
-          initialCameraLensDirection: _cameraLensDirection,
-          onCameraLensDirectionChanged: (value) => _cameraLensDirection = value,
+        ColorFiltered(
+          colorFilter: ColorFilter.matrix(_createGammaMatrix(_gamma)),
+          child: DetectorView(
+            title: 'Face Detector',
+            customPaint: _customPaint,
+            text: _text,
+            onImage: _processImage,
+            initialCameraLensDirection: _cameraLensDirection,
+            onCameraLensDirectionChanged: (value) => _cameraLensDirection = value,
+          ),
+        ),
+        Positioned(
+          right: 16,
+          top: MediaQuery.of(context).size.height / 2 - 184,
+          child: FloatingActionButton.large(
+            onPressed: _isCapturing
+                ? null
+                : () {
+                    setState(() {
+                      _gamma = _gammaOptions[(_gammaOptions.indexOf(_gamma) + 1) % _gammaOptions.length];
+                    });
+                  },
+            backgroundColor: Colors.white,
+            child: Icon(
+              Icons.brightness_6,
+              color: const Color(0xFFCF6565),
+              size: 48,
+            ),
+          ),
         ),
         Positioned(
           right: 16,
@@ -110,10 +138,10 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
           ),
         ),
         Positioned(
-          right: 16, // Aligned with shutter button
-          top: MediaQuery.of(context).size.height / 2 + 72, // Below shutter (56 + 16 gap)
+          right: 16,
+          top: MediaQuery.of(context).size.height / 2 + 72,
           child: Container(
-            width: 90, // 20% smaller than 112dp
+            width: 90,
             height: 90,
             child: FloatingActionButton(
               onPressed: _isCapturing
@@ -128,13 +156,13 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
                   ? Icon(
                       Icons.timer,
                       color: const Color(0xFFCF6565),
-                      size: 38, // Scaled down 20% from 48
+                      size: 38,
                     )
                   : Text(
                       '${_timerDelay}s',
                       style: const TextStyle(
                         color: Color(0xFFCF6565),
-                        fontSize: 26, // Scaled down 20% from 32
+                        fontSize: 26,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -154,6 +182,16 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
           ),
       ],
     );
+  }
+
+  List<double> _createGammaMatrix(double gamma) {
+    double invGamma = 1.0 / gamma;
+    return [
+      invGamma, 0, 0, 0, 0,
+      0, invGamma, 0, 0, 0,
+      0, 0, invGamma, 0, 0,
+      0, 0, 0, 1.0, 0,
+    ];
   }
 
   Future<void> _processImage(InputImage inputImage) async {
