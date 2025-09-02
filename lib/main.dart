@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
-import 'vision_detector_views/face_detector_view.dart';
+import 'landing_page.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const HomeTab());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class HomeTab extends StatelessWidget {
+  const HomeTab({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
+      title: 'AI Photo Booth',
       debugShowCheckedModeBanner: false,
-      home: FaceDetectorView(),
+      home: AIPhotoBoothHomePage(),
     );
   }
 }

@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.aiphotobooth"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
