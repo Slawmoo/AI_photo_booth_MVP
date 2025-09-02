@@ -15,7 +15,8 @@ class CameraView extends StatefulWidget {
       this.onCameraLensDirectionChanged,
       this.initialCameraLensDirection = CameraLensDirection.back})
       : super(key: key);
-
+  // Near the top of camera_view.dart
+  static CameraController? get cameraController => _CameraViewState._controller;
   final CustomPaint? customPaint;
   final Function(InputImage inputImage) onImage;
   final VoidCallback? onCameraFeedReady;
@@ -29,11 +30,12 @@ class CameraView extends StatefulWidget {
 
 class _CameraViewState extends State<CameraView> {
   static List<CameraDescription> _cameras = [];
-  CameraController? _controller;
+  // In _CameraViewState class
+  static CameraController? _controller;
   int _cameraIndex = -1;
-  double _currentZoomLevel = 1.0;
+  /*double _currentZoomLevel = 1.0;
   double _minAvailableZoom = 1.0;
-  double _maxAvailableZoom = 1.0;
+  double _maxAvailableZoom = 1.0;*/
   double _minAvailableExposureOffset = 0.0;
   double _maxAvailableExposureOffset = 0.0;
   double _currentExposureOffset = 0.0;
@@ -42,7 +44,7 @@ class _CameraViewState extends State<CameraView> {
   @override
   void initState() {
     super.initState();
-
+    // In initState or where CameraController is initialized
     _initialize();
   }
 
@@ -94,7 +96,7 @@ class _CameraViewState extends State<CameraView> {
           _backButton(),
           _switchLiveCameraToggle(),
           _detectionViewModeToggle(),
-          _zoomControl(),
+          //_zoomControl(),
           _exposureControl(),
         ],
       ),
@@ -157,7 +159,7 @@ class _CameraViewState extends State<CameraView> {
         ),
       );
 
-  Widget _zoomControl() => Positioned(
+/*  Widget _zoomControl() => Positioned(
         bottom: 16,
         left: 0,
         right: 0,
@@ -205,7 +207,7 @@ class _CameraViewState extends State<CameraView> {
           ),
         ),
       );
-
+*/
   Widget _exposureControl() => Positioned(
         top: 40,
         right: 8,
@@ -270,13 +272,13 @@ class _CameraViewState extends State<CameraView> {
       if (!mounted) {
         return;
       }
-      _controller?.getMinZoomLevel().then((value) {
+      /*_controller?.getMinZoomLevel().then((value) {
         _currentZoomLevel = value;
         _minAvailableZoom = value;
       });
       _controller?.getMaxZoomLevel().then((value) {
         _maxAvailableZoom = value;
-      });
+      });*/
       _currentExposureOffset = 0.0;
       _controller?.getMinExposureOffset().then((value) {
         _minAvailableExposureOffset = value;
