@@ -37,7 +37,7 @@ class DetectorView extends StatefulWidget {
 
 class _DetectorViewState extends State<DetectorView> {
   static CameraController? _controller;
-  final DetectorViewMode _mode = DetectorViewMode.liveFeed;
+  //final DetectorViewMode _mode = DetectorViewMode.liveFeed;
 
   @override
   Widget build(BuildContext context) {

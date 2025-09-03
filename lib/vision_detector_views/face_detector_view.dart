@@ -1,4 +1,4 @@
-import 'dart:io';
+//import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
@@ -31,7 +31,8 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
   CustomPaint? _customPaint;
   String? _text;
   var _cameraLensDirection = CameraLensDirection.front;
-  final List<String> _filters = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
+  final List<String> _filters = ['None', 'Hat', '3', '4', '5', '6', '7', '8', '9', '10'];
+  String _selectedFilter = 'None';
 
   @override
   void dispose() {
@@ -186,14 +187,18 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
                   padding: const EdgeInsets.symmetric(horizontal: 10.0),
                   child: GestureDetector(
                     onTap: () {
-                      // TODO: Apply filter later
+                      setState(() {
+                        _selectedFilter = _filters[index];
+                      });
                     },
                     child: Container(
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.6),
+                        color: _selectedFilter == _filters[index]
+                            ? Colors.white.withOpacity(0.8)
+                            : Colors.white.withOpacity(0.6),
                       ),
                       child: Center(
                         child: Text(
@@ -251,6 +256,7 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
         inputImage.metadata!.size,
         inputImage.metadata!.rotation,
         _cameraLensDirection,
+        selectedFilter: _selectedFilter,
       );
       _customPaint = CustomPaint(painter: painter);
     } else {
