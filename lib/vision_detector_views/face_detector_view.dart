@@ -31,6 +31,7 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
   CustomPaint? _customPaint;
   String? _text;
   var _cameraLensDirection = CameraLensDirection.front;
+  final List<String> _filters = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 
   @override
   void dispose() {
@@ -84,6 +85,7 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
     return Stack(
       children: [
         ColorFiltered(
@@ -166,6 +168,47 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 16,
+          left: (screenWidth - screenWidth * 0.45) / 2,
+          right: (screenWidth - screenWidth * 0.45) / 2,
+          child: SizedBox(
+            height: 100,
+            width: screenWidth * 0.45,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _filters.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                  child: GestureDetector(
+                    onTap: () {
+                      // TODO: Apply filter later
+                    },
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.6),
+                      ),
+                      child: Center(
+                        child: Text(
+                          _filters[index],
+                          style: const TextStyle(
+                            color: Color(0xFFCF6565),
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ),
