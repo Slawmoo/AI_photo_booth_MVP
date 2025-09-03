@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
@@ -11,6 +12,7 @@ class FaceDetectorPainter extends CustomPainter {
     this.rotation,
     this.cameraLensDirection, {
     this.selectedFilter = 'None',
+    this.hatImage,
   });
 
   final List<Face> faces;
@@ -18,6 +20,7 @@ class FaceDetectorPainter extends CustomPainter {
   final InputImageRotation rotation;
   final CameraLensDirection cameraLensDirection;
   final String selectedFilter;
+  final ui.Image? hatImage;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -125,38 +128,39 @@ class FaceDetectorPainter extends CustomPainter {
         paintLandmark(type);
       }
 
-      if (selectedFilter == 'Hat' && face.landmarks[FaceLandmarkType.leftEar] != null && face.landmarks[FaceLandmarkType.rightEar] != null) {
+      if (selectedFilter == 'Hat' && hatImage != null && face.landmarks[FaceLandmarkType.leftEar] != null && face.landmarks[FaceLandmarkType.rightEar] != null && face.landmarks[FaceLandmarkType.leftEye] != null && face.landmarks[FaceLandmarkType.rightEye] != null) {
         final leftEar = face.landmarks[FaceLandmarkType.leftEar]!.position;
         final rightEar = face.landmarks[FaceLandmarkType.rightEar]!.position;
-        final forehead = face.contours[FaceContourType.noseBridge]?.points.first;
+        final leftEyebrow = face.landmarks[FaceLandmarkType.leftEye]!.position;
+        final rightEyebrow = face.landmarks[FaceLandmarkType.rightEye]!.position;
 
-        if (forehead != null) {
-          final leftEarX = translateX(leftEar.x.toDouble(), size, imageSize, rotation, cameraLensDirection);
-          final leftEarY = translateY(leftEar.y.toDouble(), size, imageSize, rotation, cameraLensDirection);
-          final rightEarX = translateX(rightEar.x.toDouble(), size, imageSize, rotation, cameraLensDirection);
-          final rightEarY = translateY(rightEar.y.toDouble(), size, imageSize, rotation, cameraLensDirection);
-          final foreheadX = translateX(forehead.x.toDouble(), size, imageSize, rotation, cameraLensDirection);
-          final foreheadY = translateY(forehead.y.toDouble(), size, imageSize, rotation, cameraLensDirection);
+        final leftEarX = translateX(leftEar.x.toDouble(), size, imageSize, rotation, cameraLensDirection);
+        final leftEarY = translateY(leftEar.y.toDouble(), size, imageSize, rotation, cameraLensDirection);
+        final rightEarX = translateX(rightEar.x.toDouble(), size, imageSize, rotation, cameraLensDirection);
+        final rightEarY = translateY(rightEar.y.toDouble(), size, imageSize, rotation, cameraLensDirection);
+        final leftEyebrowX = translateX(leftEyebrow.x.toDouble(), size, imageSize, rotation, cameraLensDirection);
+        final leftEyebrowY = translateY(leftEyebrow.y.toDouble(), size, imageSize, rotation, cameraLensDirection);
+        final rightEyebrowX = translateX(rightEyebrow.x.toDouble(), size, imageSize, rotation, cameraLensDirection);
+        final rightEyebrowY = translateY(rightEyebrow.y.toDouble(), size, imageSize, rotation, cameraLensDirection);
 
-          final headWidth = (leftEarX - rightEarX).abs();
-          final imageWidth = headWidth * 1.5;
-          final imageHeight = imageWidth * 0.5;
+        final foreheadX = (leftEyebrowX + rightEyebrowX) / 2;
+        final foreheadY = (leftEyebrowY + rightEyebrowY) / 2;
 
-          final centerX = (leftEarX + rightEarX) / 2;
-          final centerY = foreheadY - headWidth * 0.3;
+        final headWidth = (leftEarX - rightEarX).abs();
+        final imageWidth = headWidth * 1.5;
+        final imageHeight = imageWidth * (hatImage!.height.toDouble() / hatImage!.width.toDouble());
 
-          final angle = (face.headEulerAngleY ?? 0.0) * pi / 180;
+        final centerX = (leftEarX + rightEarX) / 2;
+        final centerY = foreheadY - headWidth * 0.3;
 
-          canvas.save();
-          canvas.translate(centerX, centerY);
-          canvas.rotate(angle);
-          final imageRect = Rect.fromLTWH(-imageWidth / 2, -imageHeight / 2, imageWidth, imageHeight);
-          final imagePaint = Paint();
-          // Note: Actual image rendering requires a CustomPainter with image data.
-          // For testing, draw a placeholder rectangle.
-          canvas.drawRect(imageRect, Paint()..color = const Color.fromARGB(123, 24, 89, 143));
-          canvas.restore();
-        }
+        final angle = (face.headEulerAngleY ?? 0.0) * pi / 180;
+
+        canvas.save();
+        canvas.translate(centerX, centerY);
+        canvas.rotate(angle);
+        final imageRect = Rect.fromLTWH(-imageWidth / 2, -imageHeight / 2, imageWidth, imageHeight);
+        canvas.drawImage(hatImage!, imageRect.topLeft, Paint());
+        canvas.restore();
       }
     }
   }
@@ -165,6 +169,7 @@ class FaceDetectorPainter extends CustomPainter {
   bool shouldRepaint(FaceDetectorPainter oldDelegate) {
     return oldDelegate.imageSize != imageSize ||
            oldDelegate.faces != faces ||
-           oldDelegate.selectedFilter != selectedFilter;
+           oldDelegate.selectedFilter != selectedFilter ||
+           oldDelegate.hatImage != hatImage;
   }
 }

@@ -1,6 +1,9 @@
-//import 'dart:io';
+import 'dart:async';
+import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import '../imagePreview.dart';
 import 'detector_view.dart';
@@ -33,6 +36,30 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
   var _cameraLensDirection = CameraLensDirection.front;
   final List<String> _filters = ['None', 'Hat', '3', '4', '5', '6', '7', '8', '9', '10'];
   String _selectedFilter = 'None';
+  ui.Image? _hatImage;
+  final Completer<ui.Image> _imageCompleter = Completer<ui.Image>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadImage();
+  }
+
+  Future<void> _loadImage() async {
+    try {
+      final data = await DefaultAssetBundle.of(context).load('assets/hat.png');
+      final bytes = data.buffer.asUint8List();
+      final image = await decodeImageFromList(bytes);
+      _imageCompleter.complete(image);
+      if (mounted) {
+        setState(() {
+          _hatImage = image;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading hat image: $e');
+    }
+  }
 
   @override
   void dispose() {
@@ -257,6 +284,7 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
         inputImage.metadata!.rotation,
         _cameraLensDirection,
         selectedFilter: _selectedFilter,
+        hatImage: _hatImage,
       );
       _customPaint = CustomPaint(painter: painter);
     } else {
