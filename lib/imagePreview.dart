@@ -16,9 +16,13 @@ class ImagePreview extends StatelessWidget {
       ),
       body: Center(
         child: imagePath != null
-            ? ColorFiltered(
-                colorFilter: ColorFilter.matrix(_createGammaMatrix(gamma)),
-                child: Image.file(File(imagePath!)),
+            ? Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.identity()..scale(-1.0, 1.0), // Horizontal flip
+                child: ColorFiltered(
+                  colorFilter: ColorFilter.matrix(_createGammaMatrix(gamma)),
+                  child: Image.file(File(imagePath!)),
+                ),
               )
             : const Text('No image captured'),
       ),
