@@ -11,25 +11,12 @@ double translateX(
   InputImageRotation rotation,
   CameraLensDirection cameraLensDirection,
 ) {
-  switch (rotation) {
-    case InputImageRotation.rotation90deg:
-      return x *
-          canvasSize.width /
-          (Platform.isIOS ? imageSize.width : imageSize.height);
-    case InputImageRotation.rotation270deg:
-      return canvasSize.width -
-          x *
-              canvasSize.width /
-              (Platform.isIOS ? imageSize.width : imageSize.height);
-    case InputImageRotation.rotation0deg:
-    case InputImageRotation.rotation180deg:
-      switch (cameraLensDirection) {
-        case CameraLensDirection.back:
-          return x * canvasSize.width / imageSize.width;
-        default:
-          return canvasSize.width - x * canvasSize.width / imageSize.width;
-      }
+  double factor = canvasSize.width / imageSize.width;
+  double newX = x * factor;
+  if (cameraLensDirection == CameraLensDirection.front) {
+    newX = canvasSize.width - newX; // Mirror horizontally for front camera
   }
+  return newX;
 }
 
 double translateY(
@@ -39,14 +26,8 @@ double translateY(
   InputImageRotation rotation,
   CameraLensDirection cameraLensDirection,
 ) {
-  switch (rotation) {
-    case InputImageRotation.rotation90deg:
-    case InputImageRotation.rotation270deg:
-      return y *
-          canvasSize.height /
-          (Platform.isIOS ? imageSize.height : imageSize.width);
-    case InputImageRotation.rotation0deg:
-    case InputImageRotation.rotation180deg:
-      return y * canvasSize.height / imageSize.height;
-  }
+  double factor = canvasSize.height / imageSize.height;
+  double newY = y * factor;
+  // No vertical mirroring needed typically
+  return newY;
 }

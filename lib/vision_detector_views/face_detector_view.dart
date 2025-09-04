@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -33,7 +34,7 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
   CustomPaint? _customPaint;
   String? _text;
   var _cameraLensDirection = CameraLensDirection.front;
-  final List<String> _filters = ['No', 'Hat', '3', '4', '5', '6', '7', '8', '9', '10'];
+  final List<String> _filters = ['None', 'Hat', '3', '4', '5', '6', '7', '8', '9', '10'];
   String _selectedFilter = 'None';
   ui.Image? _hatImage;
   final Completer<ui.Image> _imageCompleter = Completer<ui.Image>();
@@ -72,17 +73,72 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
     try {
       final cameraController = DetectorView.cameraController;
       if (cameraController != null && cameraController.value.isInitialized) {
-        final image = await cameraController.takePicture();
-        if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ImagePreview(
-                imagePath: image.path,
-                gamma: _gamma,
-              ),
-            ),
+        final imageFile = await cameraController.takePicture();
+        final imageBytes = await imageFile.readAsBytes();
+        final uiImage = await decodeImageFromList(imageBytes);
+
+        // Process the captured image with face detection
+        final inputImage = InputImage.fromFile(File(imageFile.path));
+        final faces = await _faceDetector.processImage(inputImage);
+
+        if (faces.isNotEmpty && _hatImage != null) {
+          // Create a new image with two hat overlays
+          final recorder = ui.PictureRecorder();
+          final canvas = Canvas(recorder);
+          final size = Size(uiImage.width.toDouble(), uiImage.height.toDouble());
+
+          // Draw the captured image
+          canvas.drawImage(uiImage, Offset.zero, Paint());
+
+          // Draw both hat overlays
+          final painter = FaceDetectorPainter(
+            faces,
+            size,
+            inputImage.metadata?.rotation ?? InputImageRotation.rotation0deg,
+            _cameraLensDirection,
+            selectedFilter: _selectedFilter,
+            hatImage: _hatImage,
           );
+          
+          canvas.save();
+          canvas.scale(-1.0, 1.0); // Mirror horizontally
+          canvas.translate(-size.width, 0); // Adjust for flip
+          painter.paint(canvas, size);
+          canvas.restore();
+
+          // Convert to image and save
+          final picture = recorder.endRecording();
+          final img = await picture.toImage(uiImage.width, uiImage.height);
+          final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+          final processedBytes = byteData!.buffer.asUint8List();
+
+          // Save the processed image to a new file
+          final processedFile = File('${imageFile.path}_with_hat.png');
+          await processedFile.writeAsBytes(processedBytes);
+
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ImagePreview(
+                  imagePath: processedFile.path,
+                  gamma: _gamma,
+                ),
+              ),
+            );
+          }
+        } else {
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ImagePreview(
+                  imagePath: imageFile.path,
+                  gamma: _gamma,
+                ),
+              ),
+            );
+          }
         }
       }
     } catch (e) {
