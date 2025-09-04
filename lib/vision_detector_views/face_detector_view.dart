@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -34,7 +33,7 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
   CustomPaint? _customPaint;
   String? _text;
   var _cameraLensDirection = CameraLensDirection.front;
-  final List<String> _filters = ['None', 'Hat', '3', '4', '5', '6', '7', '8', '9', '10'];
+  final List<String> _filters = ['No', 'Hat', '3', '4', '5', '6', '7', '8', '9', '10'];
   String _selectedFilter = 'None';
   ui.Image? _hatImage;
   final Completer<ui.Image> _imageCompleter = Completer<ui.Image>();
