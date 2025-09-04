@@ -1,4 +1,4 @@
-import 'dart:math';
+//import 'dart:math'; //ENABLE FOR ADDING NEW FILTERS
 import 'dart:ui' as ui;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +25,8 @@ class FaceDetectorPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    /*
+    //ENABLE FOR ADDING NEW FILTERS DOWN IS MORE TO ENABLE
     final Paint paint1 = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0
@@ -36,7 +38,7 @@ class FaceDetectorPainter extends CustomPainter {
     final Paint paint3 = Paint()
       ..style = PaintingStyle.fill
       ..strokeWidth = 1.0
-      ..color = const ui.Color.fromARGB(255, 1, 35, 229);
+      ..color = const ui.Color.fromARGB(255, 1, 35, 229);*/
     for (final Face face in faces) {
       /*final left = translateX(
         face.boundingBox.left,
@@ -72,6 +74,8 @@ class FaceDetectorPainter extends CustomPainter {
         paint1,
       );*/
       
+      //ENABLE FOR ADDING NEW FILTERS UP IS MORE TO ENABLE
+      /*
       void paintContour(FaceContourType type) {
         final contour = face.contours[type];
         if (contour?.points != null) {
@@ -123,7 +127,7 @@ class FaceDetectorPainter extends CustomPainter {
         }
       }
 
-      void paintTestmark(double x, double y) {
+      /*void paintTestmark(double x, double y) {
           canvas.drawCircle(
               Offset(
                 translateX(
@@ -144,14 +148,14 @@ class FaceDetectorPainter extends CustomPainter {
               3,
               paint3);
         }
-      
+      */
       for (final type in FaceContourType.values) {
         paintContour(type);
       }
 
       for (final type in FaceLandmarkType.values) {
         paintLandmark(type);
-      }
+      }*/
 
       
       //paintTestmark(FaceLandmarkType.bottomMouth);
@@ -182,7 +186,7 @@ class FaceDetectorPainter extends CustomPainter {
           mx: mouthX,
           my: mouthY,
         );
-        paintTestmark(topHead['x']!, topHead['y']!);
+        //paintTestmark(topHead['x']!, topHead['y']!);
         // Get head angle for hat rotation
         /*final angle = FaceARUtils.headAngle(
           lx: leftEyeX,
