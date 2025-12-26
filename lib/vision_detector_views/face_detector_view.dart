@@ -33,7 +33,7 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
   CustomPaint? _customPaint;
   String? _text;
   var _cameraLensDirection = CameraLensDirection.front;
-  final List<String> _filters = ['None', 'Hat', '3', '4', '5', '6', '7', '8', '9', '10'];
+  final List<String> _filters = ['None', 'Hat', 'Eye-Patch', 'Beard', 'Christmas Cap'];
   String _selectedFilter = 'None';
   ui.Image? _hatImage;
   final Completer<ui.Image> _imageCompleter = Completer<ui.Image>();
