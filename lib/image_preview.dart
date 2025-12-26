@@ -191,8 +191,8 @@ void dispose() {
                   icon: Icons.print_rounded,
                   onPressed: _handlePrint,
                   backgroundColor: isConnected
-                      ? Colors.green.withOpacity(0.7)
-                      : Colors.red.withOpacity(0.7),
+                      ? Color.fromARGB(172, 76, 175, 80)
+                      : Color.fromARGB(172, 255, 0, 0),
                 ),
               ),
             ),
@@ -208,7 +208,7 @@ void dispose() {
     Color? backgroundColor,
   }) {
     return Material(
-      color: backgroundColor ?? Colors.black.withOpacity(0.7),
+      color: backgroundColor ?? Color.fromARGB(172, 0, 0, 0),
       borderRadius: BorderRadius.circular(30),
       child: InkWell(
         borderRadius: BorderRadius.circular(30),

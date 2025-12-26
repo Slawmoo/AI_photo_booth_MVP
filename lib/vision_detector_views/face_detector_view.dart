@@ -242,7 +242,7 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
             padding: const EdgeInsets.all(20),
             width: 220,
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.5), // 50% opacity background
+              color: Color.fromARGB(127, 0, 0, 0), // 50% opacity background
               borderRadius: BorderRadius.circular(20),
             ),
             child: StatefulBuilder(
@@ -256,7 +256,7 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
                       alignment: Alignment.topRight,
                       child: IconButton(
                         icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-                        color: Colors.white.withOpacity(0.5),
+                        color: ui.Color.fromARGB(126, 255, 255, 255),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ),
@@ -268,7 +268,7 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
                       min: 1.0,
                       max: 4.0,
                       divisions: 60,
-                      icon: Icons.zoom_out_map, // Scaling icon
+                      icon: Icons.zoom_in_rounded, // Scaling icon
                       onChanged: (value) {
                         setDialogState(() => _overlayScale = value);
                         setState(() {});
@@ -333,7 +333,7 @@ Widget _buildSliderRow({
           max: max,
           divisions: divisions,
           activeColor: const Color(0xFFCF6565),
-          inactiveColor: Colors.white.withOpacity(0.3),
+          inactiveColor: Color.fromARGB(76, 255, 255, 255),
           onChanged: onChanged,
         ),
       ),
@@ -384,7 +384,7 @@ Widget _buildSliderRow({
               child: Container(
                 width: 60,
                 height: 80,
-                color: Colors.black.withOpacity(0.6), // 60% opacity
+                color: Color.fromARGB(172, 0, 0, 0), // 60% opacity
                 child: const Center(
                   child: Icon(
                     Icons.chevron_right,
