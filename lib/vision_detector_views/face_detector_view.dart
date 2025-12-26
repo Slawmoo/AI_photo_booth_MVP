@@ -38,6 +38,14 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
   ui.Image? _hatImage;
   final Completer<ui.Image> _imageCompleter = Completer<ui.Image>();
 
+  final Map<String, String> _filterAssetPaths = {
+    'None': 'assets/no_filter.png',
+    'Hat': 'assets/hat.png',
+    'Eye-Patch': 'assets/eye_patch.png',
+    'Beard': 'assets/beard.png',
+    'Christmas Cap': 'assets/xmas_cap.png',
+  };
+
   @override
   void initState() {
     super.initState();
@@ -282,13 +290,11 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
                             : Color.fromARGB(153, 255, 255, 255),
                       ),
                       child: Center(
-                        child: Text(
-                          _filters[index],
-                          style: const TextStyle(
-                            color: Color(0xFFCF6565),
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        child: Image.asset(
+                          _filterAssetPaths[_filters[index]]!,
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.contain,
                         ),
                       ),
                     ),
