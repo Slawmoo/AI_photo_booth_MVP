@@ -6,15 +6,14 @@ import 'package:flutter/services.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 
 class CameraView extends StatefulWidget {
-  CameraView(
-      {Key? key,
+  const CameraView(
+      {super.key,
       required this.customPaint,
       required this.onImage,
       this.onCameraFeedReady,
       this.onDetectorViewModeChanged,
       this.onCameraLensDirectionChanged,
-      this.initialCameraLensDirection = CameraLensDirection.back})
-      : super(key: key);
+      this.initialCameraLensDirection = CameraLensDirection.front});
   // Near the top of camera_view.dart
   static CameraController? get cameraController => _CameraViewState._controller;
   final CustomPaint? customPaint;

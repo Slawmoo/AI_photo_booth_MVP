@@ -3,9 +3,8 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
-import '../imagePreview.dart';
+import '../image_preview.dart';
 import 'detector_view.dart';
 import 'painters/face_detector_painter.dart';
 
@@ -225,7 +224,7 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
         Positioned(
           right: 16,
           top: MediaQuery.of(context).size.height / 2 + 72,
-          child: Container(
+          child: SizedBox(
             width: 90,
             height: 90,
             child: FloatingActionButton(
@@ -279,8 +278,8 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: _selectedFilter == _filters[index]
-                            ? Colors.white.withOpacity(0.8)
-                            : Colors.white.withOpacity(0.6),
+                            ? Color.fromARGB(204, 255, 255, 255)
+                            : Color.fromARGB(153, 255, 255, 255),
                       ),
                       child: Center(
                         child: Text(
