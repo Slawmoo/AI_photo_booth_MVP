@@ -1,7 +1,14 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
+import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart' as esc_pos;
+import 'package:image/image.dart' as img_lib; // Keep your image: ^4.7.2
+import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:share_plus/share_plus.dart';
 
-class ImagePreview extends StatelessWidget {
+class ImagePreview extends StatefulWidget {
   final String? imagePath;
   final double gamma;
 
@@ -12,23 +19,125 @@ class ImagePreview extends StatelessWidget {
   });
 
   @override
+  State<ImagePreview> createState() => _ImagePreviewState();
+}
+
+class _ImagePreviewState extends State<ImagePreview> {
+  
+  bool isConnected = false;
+  String connectedMac = "";
+
+
+  Future<void> _requestBluetoothPermissions() async {
+    final permissions = [
+      Permission.bluetooth,
+      Permission.bluetoothScan,
+      Permission.bluetoothConnect,
+      Permission.locationWhenInUse,
+    ];
+
+    Map<Permission, PermissionStatus> statuses = await permissions.request();
+
+    bool allGranted = statuses.values.every((s) => s.isGranted || s.isLimited);
+    if (!allGranted && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bluetooth permissions are required for printing.')),
+      );
+    }
+  }
+Future<void> _printImage() async {
+  if (widget.imagePath == null || !isConnected) return;
+
+  final profile = await esc_pos.CapabilityProfile.load();
+  final generator = esc_pos.Generator(esc_pos.PaperSize.mm80, profile);
+  List<int> bytes = [];
+
+  final file = File(widget.imagePath!);
+  final Uint8List fileBytes = await file.readAsBytes();
+  final img_lib.Image? image = img_lib.decodeImage(fileBytes);
+
+  if (image != null) {
+    final resized = img_lib.copyResize(image, width: 576); // 80mm
+    bytes += generator.image(resized);
+    bytes += generator.feed(2);
+    bytes += generator.cut();
+  }
+
+  final bool result = await PrintBluetoothThermal.writeBytes(bytes);
+  if (result && mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Printing started!')),
+    );
+  }
+}
+
+Future<void> _handlePrint() async {
+  await _requestBluetoothPermissions();
+
+  if (isConnected) {
+    await _printImage();
+    return;
+  }
+
+  // Get paired printers
+  final List<BluetoothInfo> paired = await PrintBluetoothThermal.pairedBluetooths;
+
+  if (paired.isEmpty) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No paired printers found. Pair one in Bluetooth settings.')),
+      );
+    }
+    return;
+  }
+
+  // Auto-connect to first (or show dialog to choose)
+  final BluetoothInfo printer = paired.first;
+  final bool connected = await PrintBluetoothThermal.connect(macPrinterAddress: printer.macAdress);
+
+  setState(() => isConnected = connected);
+
+  if (connected) {
+    connectedMac = printer.macAdress;
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bluetooth printer connected successfully!')),
+      );
+    }
+    await _printImage();
+  } else if (mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Connection failed, try again!')),
+    );
+  }
+}
+
+// In dispose()
+@override
+void dispose() {
+  if (isConnected) PrintBluetoothThermal.disconnect;
+  super.dispose();
+}
+  
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Full-screen image with gamma correction and horizontal flip
-          if (imagePath != null)
+          // Full-screen mirrored + gamma-corrected image
+          if (widget.imagePath != null)
             Center(
               child: ColorFiltered(
-                colorFilter: ColorFilter.matrix(_createGammaMatrix(gamma)),
+                colorFilter: ColorFilter.matrix(_createGammaMatrix(widget.gamma)),
                 child: Transform(
                   alignment: Alignment.center,
-                  transform: Matrix4.identity()..scale(-1.0, 1.0), // Mirror flip
+                  transform: Matrix4.identity()..scale(-1.0, 1.0),
                   child: Image.file(
-                    File(imagePath!),
-                    fit: BoxFit.contain, // Maximally scales to fit screen while preserving aspect ratio
+                    File(widget.imagePath!),
+                    fit: BoxFit.contain,
                     width: double.infinity,
                     height: double.infinity,
                   ),
@@ -37,13 +146,10 @@ class ImagePreview extends StatelessWidget {
             )
           else
             const Center(
-              child: Text(
-                'No image captured',
-                style: TextStyle(color: Colors.white, fontSize: 18),
-              ),
+              child: Text('No image captured', style: TextStyle(color: Colors.white, fontSize: 18)),
             ),
 
-          // Top-left: Back button
+          // Back button
           SafeArea(
             child: Align(
               alignment: Alignment.topLeft,
@@ -57,7 +163,7 @@ class ImagePreview extends StatelessWidget {
             ),
           ),
 
-          // Top-right: Share button (placeholder)
+          // Share button
           SafeArea(
             child: Align(
               alignment: Alignment.topRight,
@@ -66,17 +172,16 @@ class ImagePreview extends StatelessWidget {
                 child: _buildActionButton(
                   icon: Icons.share_rounded,
                   onPressed: () {
-                    // TODO: Implement share functionality
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Share feature coming soon!')),
-                    );
+                    if (widget.imagePath != null) {
+                      Share.shareXFiles([XFile(widget.imagePath!)]);
+                    }
                   },
                 ),
               ),
             ),
           ),
 
-          // Bottom-right: Print button (placeholder)
+          // Print button – Green = connected, Red = not connected
           SafeArea(
             child: Align(
               alignment: Alignment.bottomRight,
@@ -84,12 +189,10 @@ class ImagePreview extends StatelessWidget {
                 padding: const EdgeInsets.all(16.0),
                 child: _buildActionButton(
                   icon: Icons.print_rounded,
-                  onPressed: () {
-                    // TODO: Implement print functionality
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Print feature coming soon!')),
-                    );
-                  },
+                  onPressed: _handlePrint,
+                  backgroundColor: isConnected
+                      ? Colors.green.withOpacity(0.7)
+                      : Colors.red.withOpacity(0.7),
                 ),
               ),
             ),
@@ -99,24 +202,20 @@ class ImagePreview extends StatelessWidget {
     );
   }
 
-  // Reusable sleek button with rounded rectangle and 70% opacity
   Widget _buildActionButton({
     required IconData icon,
     required VoidCallback onPressed,
+    Color? backgroundColor,
   }) {
     return Material(
-      color: Colors.black.withOpacity(0.7),
+      color: backgroundColor ?? Colors.black.withOpacity(0.7),
       borderRadius: BorderRadius.circular(30),
       child: InkWell(
         borderRadius: BorderRadius.circular(30),
         onTap: onPressed,
         child: Padding(
           padding: const EdgeInsets.all(14.0),
-          child: Icon(
-            icon,
-            color: Colors.white,
-            size: 28,
-          ),
+          child: Icon(icon, color: Colors.white, size: 28),
         ),
       ),
     );
