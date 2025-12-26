@@ -54,6 +54,28 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
   double _overlayYOffset = 0.8;      // Fraction of image height from bottom
   double _overlayRotationOffset = 180.0;  // Manual rotation offset in degrees (default 180 to fix upside down)
 
+  // Filter-specific defaults (tuned based on your testing)
+  final Map<String, double> _defaultOverlayScales = {
+    'Hat': 3.5,
+    'Eye-Patch': 1.6,
+    'Beard': 2.5,
+    'Christmas Cap': 3.3,
+  };
+
+  final Map<String, double> _defaultOverlayYOffsets = {
+    'Hat': 0.0,
+    'Eye-Patch': -0.5,
+    'Beard': -0.4,
+    'Christmas Cap': -0.9,
+  };
+
+  final Map<String, double> _defaultOverlayRotationOffsets = {
+    'Hat': 180.0,
+    'Eye-Patch': 180.0,
+    'Beard': 180.0,
+    'Christmas Cap': 200.0,
+  };
+
   @override
   void initState() {
     super.initState();
@@ -411,7 +433,7 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
           ),
         ),
 
-        // Bottom filter bar
+        // Bottom filter bar - updated onTap
         Positioned(
           bottom: 16,
           left: (screenWidth - screenWidth * 0.45) / 2,
@@ -427,7 +449,14 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10.0),
                   child: GestureDetector(
-                    onTap: () => setState(() => _selectedFilter = filter),
+                    onTap: () => setState(() {
+                      _selectedFilter = filter;
+                      if (filter != 'None') {
+                        _overlayScale = _defaultOverlayScales[filter] ?? 1.2;
+                        _overlayYOffset = _defaultOverlayYOffsets[filter] ?? 0.8;
+                        _overlayRotationOffset = _defaultOverlayRotationOffsets[filter] ?? 180.0;
+                      }
+                    }),
                     child: Container(
                       width: 80,
                       height: 80,
