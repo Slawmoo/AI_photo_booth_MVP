@@ -23,3 +23,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/hat.png
+    - assets/beard.png
+    - assets/eye_patch.png
+    - assets/xmas_cap.png
+    - assets/no_filter.png
+    

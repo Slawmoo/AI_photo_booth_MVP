@@ -12,7 +12,7 @@ class FaceDetectorPainter extends CustomPainter {
     this.rotation,
     this.cameraLensDirection, {
     this.selectedFilter = 'None',
-    this.hatImage,
+    this.filterImage,
   });
 
   final List<Face> faces;
@@ -20,12 +20,12 @@ class FaceDetectorPainter extends CustomPainter {
   final InputImageRotation rotation;
   final CameraLensDirection cameraLensDirection;
   final String selectedFilter;
-  final ui.Image? hatImage;
+  final ui.Image? filterImage;
 
   @override
   void paint(Canvas canvas, Size size) {
     for (final Face face in faces) {
-      if (selectedFilter == 'Hat' && hatImage != null && face.landmarks[FaceLandmarkType.leftEye] != null && face.landmarks[FaceLandmarkType.rightEye] != null) {
+      if (selectedFilter != 'None' && filterImage != null && face.landmarks[FaceLandmarkType.leftEye] != null && face.landmarks[FaceLandmarkType.rightEye] != null) {
         final leftEye = face.landmarks[FaceLandmarkType.leftEye]!.position;
         final rightEye = face.landmarks[FaceLandmarkType.rightEye]!.position;
         final mouth = face.landmarks[FaceLandmarkType.bottomMouth]!.position;
@@ -48,11 +48,11 @@ class FaceDetectorPainter extends CustomPainter {
         );
 
         canvas.save();
-        canvas.translate(topHead['x']! - (0.5 * hatImage!.width.toDouble()), topHead['y']! - (0.8 * hatImage!.height.toDouble()));
+        canvas.translate(topHead['x']! - (0.5 * filterImage!.width.toDouble()), topHead['y']! - (0.8 * filterImage!.height.toDouble()));
 
-        // Draw the hat image
-        final imageRect = Rect.fromLTWH(0, 0, hatImage!.width.toDouble(), hatImage!.height.toDouble());
-        canvas.drawImage(hatImage!, imageRect.topLeft, Paint());
+        // Draw the filter image
+        final imageRect = Rect.fromLTWH(0, 0, filterImage!.width.toDouble(), filterImage!.height.toDouble());
+        canvas.drawImage(filterImage!, imageRect.topLeft, Paint());
 
         canvas.restore();
       }
@@ -64,6 +64,6 @@ class FaceDetectorPainter extends CustomPainter {
     return oldDelegate.imageSize != imageSize ||
            oldDelegate.faces != faces ||
            oldDelegate.selectedFilter != selectedFilter ||
-           oldDelegate.hatImage != hatImage;
+           oldDelegate.filterImage != filterImage;
   }
 }

@@ -33,11 +33,14 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
   CustomPaint? _customPaint;
   String? _text;
   var _cameraLensDirection = CameraLensDirection.front;
+
   final List<String> _filters = ['None', 'Hat', 'Eye-Patch', 'Beard', 'Christmas Cap'];
   String _selectedFilter = 'None';
-  ui.Image? _hatImage;
-  final Completer<ui.Image> _imageCompleter = Completer<ui.Image>();
 
+  // All filter images stored here once loaded
+  final Map<String, ui.Image> _filterImages = {};
+
+  // Asset paths for both buttons and overlays
   final Map<String, String> _filterAssetPaths = {
     'None': 'assets/no_filter.png',
     'Hat': 'assets/hat.png',
@@ -46,25 +49,49 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
     'Christmas Cap': 'assets/xmas_cap.png',
   };
 
+  // Track loading status
+  bool _areImagesLoaded = false;
+
   @override
   void initState() {
     super.initState();
-    _loadImage();
+    _loadAllFilterImages();
   }
 
-  Future<void> _loadImage() async {
-    try {
-      final data = await DefaultAssetBundle.of(context).load('assets/hat.png');
-      final bytes = data.buffer.asUint8List();
-      final image = await decodeImageFromList(bytes);
-      _imageCompleter.complete(image);
-      if (mounted) {
-        setState(() {
-          _hatImage = image;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error loading hat image: $e');
+  Future<void> _loadAllFilterImages() async {
+    final List<Future<void>> futures = [];
+
+    for (final filter in _filters) {
+      if (filter == 'None') continue;
+
+      final path = _filterAssetPaths[filter]!;
+      final future = DefaultAssetBundle.of(context)
+          .load(path)
+          .then((data) async {
+        final bytes = data.buffer.asUint8List();
+        final codec = await ui.instantiateImageCodec(bytes);
+        final frame = await codec.getNextFrame();
+        return frame.image;
+      }).then((image) {
+        if (mounted) {
+          setState(() {
+            _filterImages[filter] = image;
+          });
+        }
+      }).catchError((e) {
+        debugPrint('Failed to load image for $filter: $e');
+      });
+
+      futures.add(future);
+    }
+
+    // Wait for all to complete
+    await Future.wait(futures);
+
+    if (mounted) {
+      setState(() {
+        _areImagesLoaded = true;
+      });
     }
   }
 
@@ -79,79 +106,80 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
     setState(() => _isCapturing = true);
     try {
       final cameraController = DetectorView.cameraController;
-      if (cameraController != null && cameraController.value.isInitialized) {
-        final imageFile = await cameraController.takePicture();
-        final imageBytes = await imageFile.readAsBytes();
-        final uiImage = await decodeImageFromList(imageBytes);
+      if (cameraController == null || !cameraController.value.isInitialized) {
+        return;
+      }
 
-        // Process the captured image with face detection
-        final inputImage = InputImage.fromFile(File(imageFile.path));
-        final faces = await _faceDetector.processImage(inputImage);
+      final imageFile = await cameraController.takePicture();
+      final imageBytes = await imageFile.readAsBytes();
+      final uiImage = await decodeImageFromList(imageBytes);
 
-        if (faces.isNotEmpty && _hatImage != null) {
-          // Create a new image with two hat overlays
-          final recorder = ui.PictureRecorder();
-          final canvas = Canvas(recorder);
-          final size = Size(uiImage.width.toDouble(), uiImage.height.toDouble());
+      final inputImage = InputImage.fromFile(File(imageFile.path));
+      final faces = await _faceDetector.processImage(inputImage);
 
-          // Draw the captured image
-          canvas.drawImage(uiImage, Offset.zero, Paint());
+      final currentFilterImage = _selectedFilter != 'None' ? _filterImages[_selectedFilter] : null;
 
-          // Draw both hat overlays
-          final painter = FaceDetectorPainter(
-            faces,
-            size,
-            inputImage.metadata?.rotation ?? InputImageRotation.rotation0deg,
-            _cameraLensDirection,
-            selectedFilter: _selectedFilter,
-            hatImage: _hatImage,
+      if (faces.isNotEmpty && currentFilterImage != null) {
+        final recorder = ui.PictureRecorder();
+        final canvas = Canvas(recorder);
+        final size = Size(uiImage.width.toDouble(), uiImage.height.toDouble());
+
+        canvas.drawImage(uiImage, Offset.zero, Paint());
+
+        final painter = FaceDetectorPainter(
+          faces,
+          size,
+          inputImage.metadata?.rotation ?? InputImageRotation.rotation0deg,
+          _cameraLensDirection,
+          selectedFilter: _selectedFilter,
+          filterImage: currentFilterImage,
+        );
+
+        canvas.save();
+        canvas.scale(-1.0, 1.0);
+        canvas.translate(-size.width, 0);
+        painter.paint(canvas, size);
+        canvas.restore();
+
+        final picture = recorder.endRecording();
+        final img = await picture.toImage(uiImage.width, uiImage.height);
+        final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+        final processedBytes = byteData!.buffer.asUint8List();
+
+        final processedFile = File('${imageFile.path}_with_filter.png');
+        await processedFile.writeAsBytes(processedBytes);
+
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ImagePreview(
+                imagePath: processedFile.path,
+                gamma: _gamma,
+              ),
+            ),
           );
-          
-          canvas.save();
-          canvas.scale(-1.0, 1.0); // Mirror horizontally
-          canvas.translate(-size.width, 0); // Adjust for flip
-          painter.paint(canvas, size);
-          canvas.restore();
-
-          // Convert to image and save
-          final picture = recorder.endRecording();
-          final img = await picture.toImage(uiImage.width, uiImage.height);
-          final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
-          final processedBytes = byteData!.buffer.asUint8List();
-
-          // Save the processed image to a new file
-          final processedFile = File('${imageFile.path}_with_hat.png');
-          await processedFile.writeAsBytes(processedBytes);
-
-          if (mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ImagePreview(
-                  imagePath: processedFile.path,
-                  gamma: _gamma,
-                ),
+        }
+      } else {
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ImagePreview(
+                imagePath: imageFile.path,
+                gamma: _gamma,
               ),
-            );
-          }
-        } else {
-          if (mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ImagePreview(
-                  imagePath: imageFile.path,
-                  gamma: _gamma,
-                ),
-              ),
-            );
-          }
+            ),
+          );
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error capturing image: $e')),
-      );
+      debugPrint('Capture error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error capturing image: $e')),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isCapturing = false);
@@ -176,6 +204,17 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+
+    // Optional: Show loading if images aren't ready yet
+    if (!_areImagesLoaded) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFFCF6565)),
+        ),
+      );
+    }
+
     return Stack(
       children: [
         ColorFiltered(
@@ -189,46 +228,39 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
             onCameraLensDirectionChanged: (value) => _cameraLensDirection = value,
           ),
         ),
+        // Gamma button
         Positioned(
           right: 16,
           top: MediaQuery.of(context).size.height / 2 - 184,
           child: FloatingActionButton.large(
-            onPressed: _isCapturing
-                ? null
-                : () {
-                    setState(() {
-                      _gamma = _gammaOptions[(_gammaOptions.indexOf(_gamma) + 1) % _gammaOptions.length];
-                    });
-                  },
+            onPressed: _isCapturing ? null : () {
+              setState(() {
+                final currentIndex = _gammaOptions.indexOf(_gamma);
+                _gamma = _gammaOptions[(currentIndex + 1) % _gammaOptions.length];
+              });
+            },
             backgroundColor: Colors.white,
-            child: Icon(
-              Icons.brightness_6,
-              color: const Color(0xFFCF6565),
-              size: 48,
-            ),
+            child: const Icon(Icons.brightness_6, color: Color(0xFFCF6565), size: 48),
           ),
         ),
+        // Capture button
         Positioned(
           right: 16,
           top: MediaQuery.of(context).size.height / 2 - 56,
           child: FloatingActionButton.large(
-            onPressed: _isCapturing
-                ? null
-                : () async {
-                    if (_timerDelay == 0) {
-                      await _captureImage();
-                    } else {
-                      await _startCountdown(_timerDelay);
-                    }
-                  },
+            onPressed: _isCapturing ? null : () async {
+              if (_timerDelay == 0) {
+                await _captureImage();
+              } else {
+                await _startCountdown(_timerDelay);
+              }
+            },
             backgroundColor: Colors.white,
-            child: Icon(
-              _isCapturing ? Icons.hourglass_empty : Icons.camera_alt,
-              color: const Color(0xFFCF6565),
-              size: 48,
-            ),
+            child: Icon(_isCapturing ? Icons.hourglass_empty : Icons.camera_alt,
+                color: const Color(0xFFCF6565), size: 48),
           ),
         ),
+        // Timer delay button
         Positioned(
           right: 16,
           top: MediaQuery.of(context).size.height / 2 + 72,
@@ -236,31 +268,21 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
             width: 90,
             height: 90,
             child: FloatingActionButton(
-              onPressed: _isCapturing
-                  ? null
-                  : () {
-                      setState(() {
-                        _timerDelay = _delayOptions[(_delayOptions.indexOf(_timerDelay) + 1) % _delayOptions.length];
-                      });
-                    },
+              onPressed: _isCapturing ? null : () {
+                setState(() {
+                  final currentIndex = _delayOptions.indexOf(_timerDelay);
+                  _timerDelay = _delayOptions[(currentIndex + 1) % _delayOptions.length];
+                });
+              },
               backgroundColor: Colors.white,
               child: _timerDelay == 0
-                  ? Icon(
-                      Icons.timer,
-                      color: const Color(0xFFCF6565),
-                      size: 38,
-                    )
-                  : Text(
-                      '${_timerDelay}s',
-                      style: const TextStyle(
-                        color: Color(0xFFCF6565),
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                  ? const Icon(Icons.timer, color: Color(0xFFCF6565), size: 38)
+                  : Text('${_timerDelay}s',
+                      style: const TextStyle(color: Color(0xFFCF6565), fontSize: 26, fontWeight: FontWeight.bold)),
             ),
           ),
         ),
+        // Filter selection bar
         Positioned(
           bottom: 16,
           left: (screenWidth - screenWidth * 0.45) / 2,
@@ -272,12 +294,13 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
               scrollDirection: Axis.horizontal,
               itemCount: _filters.length,
               itemBuilder: (context, index) {
+                final filter = _filters[index];
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10.0),
                   child: GestureDetector(
                     onTap: () {
                       setState(() {
-                        _selectedFilter = _filters[index];
+                        _selectedFilter = filter;
                       });
                     },
                     child: Container(
@@ -285,16 +308,19 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
                       height: 80,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: _selectedFilter == _filters[index]
-                            ? Color.fromARGB(204, 255, 255, 255)
-                            : Color.fromARGB(153, 255, 255, 255),
+                        color: _selectedFilter == filter
+                            ? const Color.fromARGB(204, 255, 255, 255)
+                            : const Color.fromARGB(153, 255, 255, 255),
                       ),
                       child: Center(
                         child: Image.asset(
-                          _filterAssetPaths[_filters[index]]!,
+                          _filterAssetPaths[filter]!,
                           width: 60,
                           height: 60,
                           fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(Icons.error, color: Colors.red, size: 40);
+                          },
                         ),
                       ),
                     ),
@@ -304,16 +330,11 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
             ),
           ),
         ),
+        // Countdown
         if (_countdown != null)
           Center(
-            child: Text(
-              '$_countdown',
-              style: const TextStyle(
-                color: Color(0xFFCF6565),
-                fontSize: 100,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            child: Text('$_countdown',
+                style: const TextStyle(color: Color(0xFFCF6565), fontSize: 100, fontWeight: FontWeight.bold)),
           ),
       ],
     );
@@ -330,13 +351,12 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
   }
 
   Future<void> _processImage(InputImage inputImage) async {
-    if (!_canProcess) return;
+    if (!_canProcess || !_areImagesLoaded) return;
     if (_isBusy) return;
     _isBusy = true;
-    setState(() {
-      _text = '';
-    });
+
     final faces = await _faceDetector.processImage(inputImage);
+
     if (inputImage.metadata?.size != null && inputImage.metadata?.rotation != null) {
       final painter = FaceDetectorPainter(
         faces,
@@ -344,20 +364,14 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
         inputImage.metadata!.rotation,
         _cameraLensDirection,
         selectedFilter: _selectedFilter,
-        hatImage: _hatImage,
+        filterImage: _filterImages[_selectedFilter],
       );
       _customPaint = CustomPaint(painter: painter);
     } else {
-      String text = 'Faces found: ${faces.length}\n\n';
-      for (final face in faces) {
-        text += 'face: ${face.boundingBox}\n\n';
-      }
-      _text = text;
       _customPaint = null;
     }
+
     _isBusy = false;
-    if (mounted) {
-      setState(() {});
-    }
+    if (mounted) setState(() {});
   }
 }
