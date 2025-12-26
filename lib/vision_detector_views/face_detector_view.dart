@@ -230,107 +230,123 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
   }
 
   void _showSlidersMenu() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Align(
-          alignment: Alignment.centerLeft,
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.7),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: StatefulBuilder(
-                builder: (context, setDialogState) {
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
+  showDialog(
+    context: context,
+    builder: (context) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            margin: const EdgeInsets.only(left: 16),
+            padding: const EdgeInsets.all(20),
+            width: 220,
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.5), // 50% opacity background
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: StatefulBuilder(
+              builder: (context, setDialogState) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Close button with 50% opacity
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: IconButton(
                         icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                        color: Colors.white.withOpacity(0.5),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const SizedBox(width: 16),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('Scale', style: TextStyle(color: Colors.white)),
-                          SizedBox(
-                            width: 150,
-                            child: Slider(
-                              value: _overlayScale,
-                              min: 1,
-                              max: 4.0,
-                              divisions: 60,
-                              label: _overlayScale.toStringAsFixed(2),
-                              activeColor: const Color(0xFFCF6565),
-                              onChanged: (value) {
-                                setDialogState(() => _overlayScale = value);
-                                setState(() {});  // Update main state
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 16),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('Height', style: TextStyle(color: Colors.white)),
-                          SizedBox(
-                            width: 150,
-                            child: Slider(
-                              value: _overlayYOffset,
-                              min: -3.0,
-                              max: 1.0,
-                              divisions: 40,
-                              label: _overlayYOffset.toStringAsFixed(2),
-                              activeColor: const Color(0xFFCF6565),
-                              onChanged: (value) {
-                                setDialogState(() => _overlayYOffset = value);
-                                setState(() {});  // Update main state
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 16),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('Rotation', style: TextStyle(color: Colors.white)),
-                          SizedBox(
-                            width: 150,
-                            child: Slider(
-                              value: _overlayRotationOffset,
-                              min: 0.0,
-                              max: 360.0,
-                              divisions: 72,
-                              label: _overlayRotationOffset.toStringAsFixed(0),
-                              activeColor: const Color(0xFFCF6565),
-                              onChanged: (value) {
-                                setDialogState(() => _overlayRotationOffset = value);
-                                setState(() {});  // Update main state
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  );
-                },
-              ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Scale Slider
+                    _buildSliderRow(
+                      value: _overlayScale,
+                      min: 1.0,
+                      max: 4.0,
+                      divisions: 60,
+                      icon: Icons.zoom_out_map, // Scaling icon
+                      onChanged: (value) {
+                        setDialogState(() => _overlayScale = value);
+                        setState(() {});
+                      },
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Height (Y Offset) Slider
+                    _buildSliderRow(
+                      value: _overlayYOffset,
+                      min: -3.0,
+                      max: 1.0,
+                      divisions: 40,
+                      icon: Icons.height, // Up/down arrows
+                      onChanged: (value) {
+                        setDialogState(() => _overlayYOffset = value);
+                        setState(() {});
+                      },
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Rotation Slider
+                    _buildSliderRow(
+                      value: _overlayRotationOffset,
+                      min: 0.0,
+                      max: 360.0,
+                      divisions: 72,
+                      icon: Icons.rotate_90_degrees_ccw, // Circular rotation arrows
+                      onChanged: (value) {
+                        setDialogState(() => _overlayRotationOffset = value);
+                        setState(() {});
+                      },
+                    ),
+                  ],
+                );
+              },
             ),
           ),
-        );
-      },
-      barrierColor: Colors.transparent,
-      barrierDismissible: true,
-    );
-  }
+        ),
+      );
+    },
+    barrierColor: Colors.transparent,
+    barrierDismissible: true,
+  );
+}
 
+// Helper method to build each slider row
+Widget _buildSliderRow({
+  required double value,
+  required double min,
+  required double max,
+  required int divisions,
+  required IconData icon,
+  required ValueChanged<double> onChanged,
+}) {
+  return Row(
+    children: [
+      Expanded(
+        child: Slider(
+          value: value,
+          min: min,
+          max: max,
+          divisions: divisions,
+          activeColor: const Color(0xFFCF6565),
+          inactiveColor: Colors.white.withOpacity(0.3),
+          onChanged: onChanged,
+        ),
+      ),
+      const SizedBox(width: 12),
+      Icon(
+        icon,
+        color: Colors.white,
+        size: 32,
+        weight: 700, // Bold icon
+      ),
+    ],
+  );
+}
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -357,29 +373,29 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
           ),
         ),
 
-        // Left center: Sliders menu trigger button
+        // Replace the old "Sliders >" button with this new half-rectangle trigger
         Positioned(
           left: 16,
-          top: screenHeight / 2 - 20,
+          top: screenHeight / 2 - 40,
           child: GestureDetector(
             onTap: _showSlidersMenu,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Sliders', style: TextStyle(color: Colors.white, fontSize: 16)),
-                  Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
-                ],
+            child: ClipRRect(
+              borderRadius: const BorderRadius.horizontal(right: Radius.circular(30)),
+              child: Container(
+                width: 60,
+                height: 80,
+                color: Colors.black.withOpacity(0.6), // 60% opacity
+                child: const Center(
+                  child: Icon(
+                    Icons.chevron_right,
+                    color: Colors.white,
+                    size: 40,
+                  ),
+                ),
               ),
             ),
           ),
         ),
-
         // Right side buttons (gamma, capture, timer)
         Positioned(
           right: 16,
