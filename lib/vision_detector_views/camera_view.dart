@@ -14,7 +14,7 @@ class CameraView extends StatefulWidget {
       this.onDetectorViewModeChanged,
       this.onCameraLensDirectionChanged,
       this.initialCameraLensDirection = CameraLensDirection.front});
-  // Near the top of camera_view.dart
+
   static CameraController? get cameraController => _CameraViewState._controller;
   final CustomPaint? customPaint;
   final Function(InputImage inputImage) onImage;
@@ -158,55 +158,7 @@ class _CameraViewState extends State<CameraView> {
         ),
       );
 
-/*  Widget _zoomControl() => Positioned(
-        bottom: 16,
-        left: 0,
-        right: 0,
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: SizedBox(
-            width: 250,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Slider(
-                    value: _currentZoomLevel,
-                    min: _minAvailableZoom,
-                    max: _maxAvailableZoom,
-                    activeColor: Colors.white,
-                    inactiveColor: Colors.white30,
-                    onChanged: (value) async {
-                      setState(() {
-                        _currentZoomLevel = value;
-                      });
-                      await _controller?.setZoomLevel(value);
-                    },
-                  ),
-                ),
-                Container(
-                  width: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Center(
-                      child: Text(
-                        '${_currentZoomLevel.toStringAsFixed(1)}x',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-*/
+
   Widget _exposureControl() => Positioned(
         top: 40,
         right: 8,
@@ -328,14 +280,9 @@ class _CameraViewState extends State<CameraView> {
   InputImage? _inputImageFromCameraImage(CameraImage image) {
     if (_controller == null) return null;
 
-    // get image rotation
-    // it is used in android to convert the InputImage from Dart to Java: https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/packages/google_mlkit_commons/android/src/main/java/com/google_mlkit_commons/InputImageConverter.java
-    // `rotation` is not used in iOS to convert the InputImage from Dart to Obj-C: https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/packages/google_mlkit_commons/ios/Classes/MLKVisionImage%2BFlutterPlugin.m
-    // in both platforms `rotation` and `camera.lensDirection` can be used to compensate `x` and `y` coordinates on a canvas: https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/packages/example/lib/vision_detector_views/painters/coordinates_translator.dart
     final camera = _cameras[_cameraIndex];
     final sensorOrientation = camera.sensorOrientation;
-    // print(
-    //     'lensDirection: ${camera.lensDirection}, sensorOrientation: $sensorOrientation, ${_controller?.value.deviceOrientation} ${_controller?.value.lockedCaptureOrientation} ${_controller?.value.isCaptureOrientationLocked}');
+    
     InputImageRotation? rotation;
     if (Platform.isIOS) {
       rotation = InputImageRotationValue.fromRawValue(sensorOrientation);
@@ -352,17 +299,11 @@ class _CameraViewState extends State<CameraView> {
             (sensorOrientation - rotationCompensation + 360) % 360;
       }
       rotation = InputImageRotationValue.fromRawValue(rotationCompensation);
-      // print('rotationCompensation: $rotationCompensation');
     }
     if (rotation == null) return null;
-    // print('final rotation: $rotation');
 
-    // get image format
     final format = InputImageFormatValue.fromRawValue(image.format.raw);
-    // validate format depending on platform
-    // only supported formats:
-    // * nv21 for Android
-    // * bgra8888 for iOS
+    
     if (format == null ||
         (Platform.isAndroid && format != InputImageFormat.nv21) ||
         (Platform.isIOS && format != InputImageFormat.bgra8888)) {
@@ -378,9 +319,9 @@ class _CameraViewState extends State<CameraView> {
       bytes: plane.bytes,
       metadata: InputImageMetadata(
         size: Size(image.width.toDouble(), image.height.toDouble()),
-        rotation: rotation, // used only in Android
-        format: format, // used only in iOS
-        bytesPerRow: plane.bytesPerRow, // used only in iOS
+        rotation: rotation, 
+        format: format, 
+        bytesPerRow: plane.bytesPerRow, 
       ),
     );
   }
