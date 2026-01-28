@@ -94,7 +94,7 @@ class _CameraViewState extends State<CameraView> {
           ),
           _backButton(),
           _switchLiveCameraToggle(),
-          _detectionViewModeToggle(),
+          //_detectionViewModeToggle(),
           //_zoomControl(),
           _exposureControl(),
         ],
@@ -119,7 +119,7 @@ class _CameraViewState extends State<CameraView> {
           ),
         ),
       );
-
+/*
   Widget _detectionViewModeToggle() => Positioned(
         bottom: 8,
         left: 8,
@@ -137,7 +137,7 @@ class _CameraViewState extends State<CameraView> {
           ),
         ),
       );
-
+*/
   Widget _switchLiveCameraToggle() => Positioned(
         bottom: 8,
         right: 8,

@@ -117,19 +117,6 @@ class _FaceDetectorViewState extends State<FaceDetectorView> {
 
     if (mounted) {
       setState(() => _areImagesLoaded = true);
-
-      if (loadErrors.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('All filters loaded successfully!')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Load errors: ${loadErrors.keys.join(', ')}'),
-            duration: const Duration(seconds: 8),
-          ),
-        );
-      }
     }
   }
 
