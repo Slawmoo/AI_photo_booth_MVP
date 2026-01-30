@@ -94,8 +94,6 @@ class _CameraViewState extends State<CameraView> {
           ),
           _backButton(),
           _switchLiveCameraToggle(),
-          //_detectionViewModeToggle(),
-          //_zoomControl(),
           _exposureControl(),
         ],
       ),
@@ -119,25 +117,7 @@ class _CameraViewState extends State<CameraView> {
           ),
         ),
       );
-/*
-  Widget _detectionViewModeToggle() => Positioned(
-        bottom: 8,
-        left: 8,
-        child: SizedBox(
-          height: 50.0,
-          width: 50.0,
-          child: FloatingActionButton(
-            heroTag: Object(),
-            onPressed: widget.onDetectorViewModeChanged,
-            backgroundColor: Colors.black54,
-            child: Icon(
-              Icons.photo_library_outlined,
-              size: 25,
-            ),
-          ),
-        ),
-      );
-*/
+
   Widget _switchLiveCameraToggle() => Positioned(
         bottom: 8,
         right: 8,
@@ -213,7 +193,7 @@ class _CameraViewState extends State<CameraView> {
     _controller = CameraController(
       camera,
       // Set to ResolutionPreset.high. Do NOT set it to ResolutionPreset.max because for some phones does NOT work.
-      ResolutionPreset.high,
+      ResolutionPreset.max,
       enableAudio: false,
       imageFormatGroup: Platform.isAndroid
           ? ImageFormatGroup.nv21
