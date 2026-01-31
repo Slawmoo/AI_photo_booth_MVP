@@ -29,21 +29,25 @@ class CameraView extends StatefulWidget {
 
 class _CameraViewState extends State<CameraView> {
   static List<CameraDescription> _cameras = [];
-  // In _CameraViewState class
   static CameraController? _controller;
   int _cameraIndex = -1;
-  /*double _currentZoomLevel = 1.0;
-  double _minAvailableZoom = 1.0;
-  double _maxAvailableZoom = 1.0;*/
   double _minAvailableExposureOffset = 0.0;
   double _maxAvailableExposureOffset = 0.0;
   double _currentExposureOffset = 0.0;
   bool _changingCameraLens = false;
 
+  final List<ResolutionPreset> _resolutions = [
+    ResolutionPreset.low,
+    ResolutionPreset.medium,
+    ResolutionPreset.high,
+    ResolutionPreset.veryHigh,
+    ResolutionPreset.ultraHigh,
+  ];
+  int _resolutionIndex = 3; // Počinjemo od veryHigh (indeks 3)
+
   @override
   void initState() {
     super.initState();
-    // In initState or where CameraController is initialized
     _initialize();
   }
 
@@ -75,31 +79,39 @@ class _CameraViewState extends State<CameraView> {
 
   Widget _liveFeedBody() {
     if (_cameras.isEmpty) return Container();
-    if (_controller == null) return Container();
-    if (_controller?.value.isInitialized == false) return Container();
+    
+    // Ako se kamera mijenja ILI kontroler još nije inicijaliziran, prikaži crni ekran ili loader
+    if (_changingCameraLens || 
+        _controller == null || 
+        !_controller!.value.isInitialized) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: CircularProgressIndicator(color: Colors.purpleAccent),
+        ),
+      );
+    }
+
     return ColoredBox(
       color: Colors.black,
       child: Stack(
         fit: StackFit.expand,
         children: <Widget>[
           Center(
-            child: _changingCameraLens
-                ? Center(
-                    child: const Text('Changing camera lens'),
-                  )
-                : CameraPreview(
-                    _controller!,
-                    child: widget.customPaint,
-                  ),
+            child: CameraPreview(
+              _controller!,
+              child: widget.customPaint,
+            ),
           ),
           _backButton(),
           _switchLiveCameraToggle(),
           _exposureControl(),
+          _resolutionControl(),
         ],
       ),
     );
   }
-
+  
   Widget _backButton() => Positioned(
         top: 40,
         left: 8,
@@ -117,7 +129,27 @@ class _CameraViewState extends State<CameraView> {
           ),
         ),
       );
-
+    
+    Widget _resolutionControl() => Positioned(
+        bottom: 8,
+        left: 8,
+        child: SizedBox(
+          height: 50.0,
+          width: 50.0,
+          child: FloatingActionButton(
+            heroTag: 'resBtn',
+            onPressed: _toggleResolution,
+            backgroundColor: Colors.black.withOpacity(0.4), // "Blago skriven"
+            child: Text(
+              '${_resolutionIndex + 1}', // Prikazuje broj rezolucije 1-5
+              style: TextStyle(
+                color: Colors.purpleAccent, // Ljubičasti tekst
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      );
   Widget _switchLiveCameraToggle() => Positioned(
         bottom: 8,
         right: 8,
@@ -187,13 +219,26 @@ class _CameraViewState extends State<CameraView> {
           ]),
         ),
       );
+  Future _toggleResolution() async {
+    // 1. Postavi loading stanje
+    setState(() => _changingCameraLens = true); 
+
+    _resolutionIndex = (_resolutionIndex + 1) % _resolutions.length;
+
+    // 2. Ugasi staru kameru potpuno
+    await _stopLiveFeed();
+    
+    // 3. Pokreni novu (startLiveFeed će na kraju sam ugasiti loading)
+    await _startLiveFeed();
+    
+    setState(() => _changingCameraLens = false);
+  }
 
   Future _startLiveFeed() async {
     final camera = _cameras[_cameraIndex];
     _controller = CameraController(
       camera,
-      // Set to ResolutionPreset.high. Do NOT set it to ResolutionPreset.max because for some phones does NOT work.
-      ResolutionPreset.max,
+      _resolutions[_resolutionIndex],
       enableAudio: false,
       imageFormatGroup: Platform.isAndroid
           ? ImageFormatGroup.nv21
@@ -203,13 +248,7 @@ class _CameraViewState extends State<CameraView> {
       if (!mounted) {
         return;
       }
-      /*_controller?.getMinZoomLevel().then((value) {
-        _currentZoomLevel = value;
-        _minAvailableZoom = value;
-      });
-      _controller?.getMaxZoomLevel().then((value) {
-        _maxAvailableZoom = value;
-      });*/
+      
       _currentExposureOffset = 0.0;
       _controller?.getMinExposureOffset().then((value) {
         _minAvailableExposureOffset = value;
